@@ -16,10 +16,18 @@ class AISummarizer:
     
     def __init__(self, api_key: str = None):
         self.api_key = api_key or os.getenv('OPENAI_API_KEY')
+        self.use_ai = os.getenv('USE_AI_SUMMARY', 'true').lower() == 'true'
+        
+        # 检查是否应该使用AI
+        if self.use_ai and self.api_key:
+            logger.info("启用AI总结功能")
+        else:
+            logger.info("使用基础总结功能（未启用AI或未配置API密钥）")
     
     def summarize_paper(self, title: str, abstract: str) -> Dict[str, str]:
         """总结论文"""
-        if not self.api_key:
+        # 如果不使用AI或没有API密钥，直接使用基础总结
+        if not self.use_ai or not self.api_key:
             return self._basic_summary(abstract)
         
         try:
