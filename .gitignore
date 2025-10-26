@@ -22,7 +22,6 @@ wheels/
 
 # 环境变量
 .env
-configs/config.py
 
 # 日志文件
 output/*.log
