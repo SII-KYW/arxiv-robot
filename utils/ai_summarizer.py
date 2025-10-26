@@ -7,6 +7,7 @@ import logging
 import re
 from typing import Dict
 import os
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -16,18 +17,31 @@ class AISummarizer:
     
     def __init__(self, api_key: str = None):
         self.api_key = api_key or os.getenv('OPENAI_API_KEY')
+        self.api_url = os.getenv("OPENAI_API_URL", None)
+        self.model_type = os.getenv("MODEL_TYPE", "gpt-3.5-turbo")
+        self.use_ai_summary = os.getenv("USE_AI_SUMMARY", True)
+        
+        if not self.api_key or self.api_url is None:
+            self.use_ai_summary = False
+        logger.info(f"Initialize `AISummarizer` and set `USE_AI_SUMMARY` to {self.use_ai_summary}")
+        
+        self.enable_thinking = os.getenv("ENABLE_THINKING", False)
     
     def summarize_paper(self, title: str, abstract: str) -> Dict[str, str]:
         """总结论文"""
-        if not self.api_key:
+        if not self.use_ai_summary:
             return self._basic_summary(abstract)
         
         try:
+            # headers = {
+            #     'Authorization': f'Bearer {self.api_key}',
+            #     'Content-Type': 'application/json'
+            # }
             headers = {
-                'Authorization': f'Bearer {self.api_key}',
-                'Content-Type': 'application/json'
+                "Accept": "application/json",
+                "Content-Type": "application/json"
             }
-            
+                        
             prompt = f"""
 请分析以下学术论文，提取关键信息：
 
@@ -46,22 +60,28 @@ class AISummarizer:
 """
             
             data = {
-                "model": "gpt-3.5-turbo",
-                "messages": [{"role": "user", "content": prompt}],
-                "max_tokens": 500,
-                "temperature": 0.3
+                "model": self.model_type,
+                "messages": [
+                    {"role": "user", "content": prompt}
+                ],
+                "stream": False,
+                # "max_tokens": 500,
+                # "temperature": 0.3
+                "enable_thinking": self.enable_thinking,
             }
             
             response = requests.post(
-                'https://api.openai99.top/v1/chat/completions',
+                self.api_url,
                 headers=headers,
-                json=data,
-                timeout=30
+                data=json.dumps(data),
+                # timeout=30,
+                verify=False
             )
             
             if response.status_code == 200:
                 result = response.json()
                 content = result['choices'][0]['message']['content']
+                logger.debug(content)
                 return self._parse_ai_response(content)
             else:
                 logger.error(f"OpenAI API调用失败: {response.status_code}")

@@ -20,11 +20,13 @@ from configs import config
 load_dotenv()
 
 # 配置日志
+log_path = os.path.join("output", os.getenv("LOG_FILE", "arxiv_robot.log"))
+os.makedirs(os.path.dirname(log_path), exist_ok=True)
 logging.basicConfig(
-    level=logging.INFO,
+    level=getattr(logging, os.getenv("LOG_LEVEL", "INFO")),
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('output/arxiv_robot.log', encoding='utf-8'),
+        logging.FileHandler(log_path, encoding='utf-8'),
         logging.StreamHandler(sys.stdout)
     ]
 )
