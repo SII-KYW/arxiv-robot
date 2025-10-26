@@ -20,7 +20,10 @@ class EmailSender:
         self.port = int(os.getenv('EMAIL_PORT', 587))
         self.username = os.getenv('EMAIL_USER')
         self.password = os.getenv('EMAIL_PASSWORD')
-        self.recipient_email = os.getenv('RECIPIENT_EMAIL')
+        
+        # 支持多个收件人（用逗号分隔）
+        recipient_str = os.getenv('RECIPIENT_EMAIL', '')
+        self.recipient_emails = [email.strip() for email in recipient_str.split(',') if email.strip()]
     
     def format_email_content(self, papers: List[Dict], ai_summarizer) -> str:
         """格式化邮件内容"""
@@ -89,27 +92,36 @@ class EmailSender:
             date_str = datetime.now().strftime('%Y-%m-%d')
             subject = f"{date_str} 每日精选 #{len(papers)}"
             
-            # 创建邮件对象
-            msg = MIMEText(email_body, 'plain', 'utf-8')
-            msg['From'] = self.username
-            msg['To'] = self.recipient_email
-            msg['Subject'] = subject
+            # 发送给所有收件人
+            success_count = 0
+            for recipient_email in self.recipient_emails:
+                try:
+                    # 创建邮件对象
+                    msg = MIMEText(email_body, 'plain', 'utf-8')
+                    msg['From'] = self.username
+                    msg['To'] = recipient_email
+                    msg['Subject'] = subject
+                    
+                    # 发送邮件 - 支持163邮箱SSL连接
+                    if self.host == 'smtp.163.com' and self.port == 465:
+                        # 163邮箱SSL连接
+                        with smtplib.SMTP_SSL(self.host, self.port) as server:
+                            server.login(self.username, self.password)
+                            server.sendmail(self.username, recipient_email, msg.as_string())
+                    else:
+                        # 其他邮箱TLS连接
+                        with smtplib.SMTP(self.host, self.port) as server:
+                            server.starttls()
+                            server.login(self.username, self.password)
+                            server.sendmail(self.username, recipient_email, msg.as_string())
+                    
+                    logger.info(f"邮件发送成功: {recipient_email}")
+                    success_count += 1
+                except Exception as e:
+                    logger.error(f"发送邮件到 {recipient_email} 失败: {e}")
             
-            # 发送邮件 - 支持163邮箱SSL连接
-            if self.host == 'smtp.163.com' and self.port == 465:
-                # 163邮箱SSL连接
-                with smtplib.SMTP_SSL(self.host, self.port) as server:
-                    server.login(self.username, self.password)
-                    server.sendmail(self.username, self.recipient_email, msg.as_string())
-            else:
-                # 其他邮箱TLS连接
-                with smtplib.SMTP(self.host, self.port) as server:
-                    server.starttls()
-                    server.login(self.username, self.password)
-                    server.sendmail(self.username, self.recipient_email, msg.as_string())
-            
-            logger.info("邮件发送成功")
-            return True
+            logger.info(f"成功发送 {success_count}/{len(self.recipient_emails)} 封邮件")
+            return success_count > 0
             
         except Exception as e:
             logger.error(f"邮件发送失败: {e}")
@@ -131,26 +143,35 @@ class EmailSender:
 arXiv机器人
             """.strip()
             
-            msg = MIMEText(test_body, 'plain', 'utf-8')
-            msg['From'] = self.username
-            msg['To'] = self.recipient_email
-            msg['Subject'] = "[arXiv机器人] 测试邮件"
+            # 发送给所有收件人
+            success_count = 0
+            for recipient_email in self.recipient_emails:
+                try:
+                    msg = MIMEText(test_body, 'plain', 'utf-8')
+                    msg['From'] = self.username
+                    msg['To'] = recipient_email
+                    msg['Subject'] = "[arXiv机器人] 测试邮件"
+                    
+                    # 发送测试邮件 - 支持163邮箱SSL连接
+                    if self.host == 'smtp.163.com' and self.port == 465:
+                        # 163邮箱SSL连接
+                        with smtplib.SMTP_SSL(self.host, self.port) as server:
+                            server.login(self.username, self.password)
+                            server.sendmail(self.username, recipient_email, msg.as_string())
+                    else:
+                        # 其他邮箱TLS连接
+                        with smtplib.SMTP(self.host, self.port) as server:
+                            server.starttls()
+                            server.login(self.username, self.password)
+                            server.sendmail(self.username, recipient_email, msg.as_string())
+                    
+                    logger.info(f"测试邮件发送成功: {recipient_email}")
+                    success_count += 1
+                except Exception as e:
+                    logger.error(f"发送测试邮件到 {recipient_email} 失败: {e}")
             
-            # 发送测试邮件 - 支持163邮箱SSL连接
-            if self.host == 'smtp.163.com' and self.port == 465:
-                # 163邮箱SSL连接
-                with smtplib.SMTP_SSL(self.host, self.port) as server:
-                    server.login(self.username, self.password)
-                    server.sendmail(self.username, self.recipient_email, msg.as_string())
-            else:
-                # 其他邮箱TLS连接
-                with smtplib.SMTP(self.host, self.port) as server:
-                    server.starttls()
-                    server.login(self.username, self.password)
-                    server.sendmail(self.username, self.recipient_email, msg.as_string())
-            
-            logger.info("测试邮件发送成功")
-            return True
+            logger.info(f"成功发送 {success_count}/{len(self.recipient_emails)} 封测试邮件")
+            return success_count > 0
             
         except Exception as e:
             logger.error(f"测试邮件发送失败: {e}")

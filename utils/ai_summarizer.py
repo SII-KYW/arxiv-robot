@@ -23,7 +23,11 @@ class AISummarizer:
         
         if not self.api_key or self.api_url is None:
             self.use_ai_summary = False
-        logger.info(f"Initialize `AISummarizer` and set `USE_AI_SUMMARY` to {self.use_ai_summary}")
+            
+        if self.use_ai_summary:
+            logger.info("启用AI总结功能")
+        else:
+            logger.info("使用基础总结功能（未启用AI或未配置API密钥）")
         
         self.enable_thinking = os.getenv("ENABLE_THINKING", False)
     
