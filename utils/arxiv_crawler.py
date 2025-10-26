@@ -55,6 +55,7 @@ class ArxivCrawler:
                         'arxiv_id': entry.get('id', '').split('/')[-1] if entry.get('id') else '',
                         'categories': [tag.get('term', '') for tag in entry.get('tags', [])]
                     }
+                    logger.debug(paper)
                     all_papers.append(paper)
                 
                 logger.info(f"从类别 {category} 获取到 {len(feed.entries)} 篇论文")

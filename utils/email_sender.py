@@ -61,7 +61,7 @@ class EmailSender:
             
             # 链接
             if paper['link']:
-                email_parts.append(f"🔗 ArXiv 链接: {paper['link']}")
+                email_parts.append(f"🔗 ArXiv 链接: \n{paper['link']}")
             
             email_parts.append("")  # 空行分隔
         

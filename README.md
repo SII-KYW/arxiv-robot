@@ -12,7 +12,7 @@ pip install -r requirements.txt
 ### 2. 配置邮箱
 复制环境变量示例文件：
 ```bash
-cp docs/env_example.txt .env
+cp template/env_example.txt .env && cp cp template/config.py ./configs/
 ```
 
 编辑 `.env` 文件，填入您的邮箱信息：
