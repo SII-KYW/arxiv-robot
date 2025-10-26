@@ -52,6 +52,8 @@ class ArxivRobot:
         logger.info(f"  - 模型类型: {os.getenv('MODEL_TYPE')}")
         logger.info(f"  - 是否启用思考: {os.getenv('ENABLE_THINKING')}")
         logger.info(f"  - 是否使用AI总结: {os.getenv('USE_AI_SUMMARY')}")
+
+        logger.info(f"  - 邮件接收人: \n{os.getenv('RECIPIENT_EMAIL')}")
         logger.info("=" * 50+"\n")
         
         # 初始化组件
