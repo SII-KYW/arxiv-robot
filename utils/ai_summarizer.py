@@ -9,7 +9,10 @@ from typing import Dict
 import os
 import json
 
+from utils.logger import APILogger
+
 logger = logging.getLogger(__name__)
+api_logger = APILogger("OpenAI")
 
 
 class AISummarizer:
@@ -37,10 +40,6 @@ class AISummarizer:
             return self._basic_summary(abstract)
         
         try:
-            # headers = {
-            #     'Authorization': f'Bearer {self.api_key}',
-            #     'Content-Type': 'application/json'
-            # }
             headers = {
                 "Accept": "application/json",
                 "Content-Type": "application/json"
@@ -69,31 +68,58 @@ class AISummarizer:
                     {"role": "user", "content": prompt}
                 ],
                 "stream": False,
-                # "max_tokens": 500,
-                # "temperature": 0.3
                 "enable_thinking": self.enable_thinking,
             }
             
+            # 发送请求
             response = requests.post(
                 self.api_url,
                 headers=headers,
                 data=json.dumps(data),
-                # timeout=30,
                 verify=False
             )
             
+            # 检查响应
             if response.status_code == 200:
                 result = response.json()
-                content = result['choices'][0]['message']['content']
+                content = result.get('choices', [{}])[0].get('message', {}).get('content', '')
+                
+                # 记录成功到文件
+                api_logger.log_openai_request(
+                    model=self.model_type,
+                    prompt_preview=prompt,
+                    success=True,
+                    response_preview=content
+                )
+                
                 logger.debug(content)
                 return self._parse_ai_response(content)
             else:
-                logger.error(f"OpenAI API调用失败: {response.status_code}")
-                return self._basic_summary(abstract)
+                # 记录失败到文件
+                error_msg = f"HTTP {response.status_code}: {response.text[:100]}"
+                api_logger.log_openai_request(
+                    model=self.model_type,
+                    prompt_preview=prompt,
+                    success=False,
+                    error=error_msg
+                )
+                logger.error(f"⚠️ AI总结失败，使用基础总结: HTTP {response.status_code}")
+                result = self._basic_summary(abstract)
+                result['_ai_failed'] = True  # 标记为失败
+                return result
                 
         except Exception as e:
-            logger.error(f"AI总结失败: {e}")
-            return self._basic_summary(abstract)
+            # 记录异常到文件
+            api_logger.log_openai_request(
+                model=self.model_type,
+                prompt_preview=f"标题: {title[:50]}...",
+                success=False,
+                error=str(e)
+            )
+            logger.error(f"⚠️ AI总结失败，使用基础总结: {e}")
+            result = self._basic_summary(abstract)
+            result['_ai_failed'] = True  # 标记为失败
+            return result
     
     def _basic_summary(self, abstract: str) -> Dict[str, str]:
         """基础总结"""
@@ -116,16 +142,24 @@ class AISummarizer:
             if not line:
                 continue
             
-            if '核心问题' in line:
+            if '核心问题' in line or 'Core Problem' in line:
                 current_section = 'core_problem'
-                result[current_section] = line.split('：', 1)[-1].strip()
-            elif '关键思路' in line:
+                # 移除"核心问题："前缀
+                result[current_section] = line.split('：', 1)[-1].split(':', 1)[-1].strip()
+            elif '关键思路' in line or 'Key Approach' in line:
                 current_section = 'key_approach'
-                result[current_section] = line.split('：', 1)[-1].strip()
-            elif '主要结论' in line:
+                # 移除"关键思路："前缀
+                result[current_section] = line.split('：', 1)[-1].split(':', 1)[-1].strip()
+            elif '主要结论' in line or 'Main Conclusion' in line:
                 current_section = 'main_conclusion'
-                result[current_section] = line.split('：', 1)[-1].strip()
-            elif current_section and line:
+                # 移除"主要结论："前缀
+                result[current_section] = line.split('：', 1)[-1].split(':', 1)[-1].strip()
+            elif current_section and line and not line.startswith('【') and not line.startswith('['):
+                # 继续添加到当前section
                 result[current_section] += ' ' + line
+        
+        # 清理每个字段
+        for key in result:
+            result[key] = result[key].strip()
         
         return result

@@ -20,16 +20,13 @@ from configs import config
 load_dotenv()
 
 # 配置日志
+from utils.logger import setup_logger
+
 log_path = os.path.join("output", os.getenv("LOG_FILE", "arxiv_robot.log"))
 os.makedirs(os.path.dirname(log_path), exist_ok=True)
-logging.basicConfig(
-    level=getattr(logging, os.getenv("LOG_LEVEL", "INFO")),
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler(log_path, encoding='utf-8'),
-        logging.StreamHandler(sys.stdout)
-    ]
-)
+
+# 使用新的日志系统
+setup_logger(os.getenv("LOG_LEVEL", "INFO"))
 logger = logging.getLogger(__name__)
 
 
@@ -39,6 +36,23 @@ class ArxivRobot:
     def __init__(self):
         # 验证配置
         self._validate_config()
+        
+        logger.info('\n\n'+"=" * 50)
+        logger.info("📋 配置信息:")
+        logger.info(f"  - arXiv类别: {len(config.ARXIV_CATEGORIES)} 个")
+        logger.info(f"  - arXiv类别: \n{config.ARXIV_CATEGORIES}")
+        logger.info(f"  - 每类爬取上限: {config.MAX_PAPERS_PER_CATEGORY} 篇")
+        logger.info(f"  - 精选论文上限: {config.MAX_PAPERS_IN_EMAIL} 篇")
+        logger.info(f"  - 爬取天数: {config.DAYS_BACK} 天")
+        logger.info(f"  - 筛选关键词: {len(config.KEYWORDS)} 个")
+        logger.info(f"  - 关键词: \n{config.KEYWORDS}")
+        logger.info(f"  - 排除关键词: {len(config.EXCLUDE_KEYWORDS)} 个")
+        logger.info(f"  - 排除关键词: \n{config.EXCLUDE_KEYWORDS}")
+
+        logger.info(f"  - 模型类型: {os.getenv('MODEL_TYPE')}")
+        logger.info(f"  - 是否启用思考: {os.getenv('ENABLE_THINKING')}")
+        logger.info(f"  - 是否使用AI总结: {os.getenv('USE_AI_SUMMARY')}")
+        logger.info("=" * 50+"\n")
         
         # 初始化组件
         self.crawler = ArxivCrawler(
@@ -70,23 +84,48 @@ class ArxivRobot:
             logger.info("开始执行arXiv论文爬取任务...")
             
             # 1. 爬取论文
-            papers = self.crawler.fetch_papers(days_back=config.DAYS_BACK)
-            if not papers:
-                logger.warning("未获取到任何论文")
-                return True
+            logger.info('\n'+"=" * 50)
+            logger.info(f"📥 步骤1: 爬取论文 (最近{config.DAYS_BACK}天)")
+            try:
+                papers = self.crawler.fetch_papers(days_back=config.DAYS_BACK)
+                if not papers:
+                    logger.warning("⚠️ 未获取到任何论文，任务终止")
+                    return True
+                logger.info(f"✅ 爬取完成: {len(papers)} 篇论文")
+            except Exception as e:
+                logger.error(f"❌ 爬取失败: {e}")
+                return False
             
             # 2. 筛选论文
-            filtered_papers = self.filter.filter_papers(papers)
-            if not filtered_papers:
-                logger.info("未找到符合条件的论文")
-                return True
+            logger.info("=" * 50)
+            logger.info(f"🔍 步骤2: 筛选论文 (关键词数量: {len(config.KEYWORDS)}, 排除词: {len(config.EXCLUDE_KEYWORDS)})")
+            try:
+                filtered_papers = self.filter.filter_papers(papers)
+                if not filtered_papers:
+                    logger.info("⚠️ 未找到符合条件的论文，任务终止")
+                    return True
+                logger.info(f"✅ 筛选完成: {len(filtered_papers)} 篇相关论文")
+            except Exception as e:
+                logger.error(f"❌ 筛选失败: {e}")
+                return False
             
-            # 3. 发送邮件
-            success = self.email_sender.send_email(filtered_papers, self.ai_summarizer)
-            return success
+            # 3. 总结论文并发送邮件
+            logger.info("=" * 50)
+            logger.info(f"📧 步骤3: 总结论文并发送邮件 (限制 {config.MAX_PAPERS_IN_EMAIL} 篇)")
+            try:
+                success = self.email_sender.send_email(filtered_papers, self.ai_summarizer)
+                if success:
+                    logger.info(f"✅ 邮件发送完成")
+                    logger.info("=" * 50)
+                return success
+            except Exception as e:
+                logger.error(f"❌ 邮件发送失败: {e}")
+                logger.info("=" * 50)
+                return False
             
         except Exception as e:
             logger.error(f"执行任务时出错: {e}")
+            logger.info("=" * 50)
             return False
     
     def test_email(self) -> bool:

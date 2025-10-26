@@ -9,7 +9,10 @@ from typing import List, Dict
 from datetime import datetime
 import os
 
+from utils.logger import APILogger
+
 logger = logging.getLogger(__name__)
+api_logger = APILogger("Email")
 
 
 class EmailSender:
@@ -31,33 +34,55 @@ class EmailSender:
             return "今日未发现相关论文。"
         
         date_str = datetime.now().strftime('%Y-%m-%d')
-        email_parts = [f"{date_str} 每日精选 #{len(papers)}", ""]
+        # 从config读取最大论文数
+        from configs import config
+        max_papers = min(len(papers), config.MAX_PAPERS_IN_EMAIL)
+        total_count = max_papers
         
-        for i, paper in enumerate(papers[:20], 1):  # 限制20篇
+        # 邮件头部
+        email_parts = [f"{date_str} arxiv每日精选paper，共 {total_count} 篇", ""]
+        
+        for i, paper in enumerate(papers[:max_papers], 1):
+            # 分隔符
+            email_parts.append("")
+            email_parts.append(f"=== 每日精选 #{i}/{total_count} ===")
+            
             # 标题
-            email_parts.append(f"标题: {paper['title']}")
+            email_parts.append(f"📄 标题: {paper['title']}")
             
             # 摘要
             if paper['abstract']:
-                email_parts.append(f"摘要:\n{paper['abstract']}")
+                email_parts.append(f"📝 摘要:\n{paper['abstract']}")
             
             # AI总结
+            logger.info(f"[{i}/{total_count}] 正在总结论文: {paper['title'][:50]}...")
             ai_summary = ai_summarizer.summarize_paper(paper['title'], paper['abstract'])
             
+            # 检查是否失败
+            if ai_summary.get('_ai_failed'):
+                logger.warning(f"[{i}/{total_count}] ⚠️ AI总结失败，使用基础总结")
+            else:
+                logger.info(f"[{i}/{total_count}] 论文总结完成 ✅")
+            
             if ai_summary['core_problem']:
-                email_parts.append(f"核心问题：\n{ai_summary['core_problem']}")
+                email_parts.append(f"🎯 核心问题：\n{ai_summary['core_problem']}")
             
             if ai_summary['key_approach']:
-                email_parts.append(f"关键思路或结论：\n{ai_summary['key_approach']}")
+                email_parts.append(f"💡 关键思路：\n{ai_summary['key_approach']}")
+            
+            if ai_summary.get('main_conclusion'):
+                email_parts.append(f"✨ 主要结论：\n{ai_summary['main_conclusion']}")
+
             
             # 发表时间
             if paper['published']:
                 try:
                     pub_date = datetime.fromisoformat(paper['published'].replace('Z', '+00:00'))
                     published_str = pub_date.strftime('%a, %d %b %Y %H:%M:%S %z')
-                    email_parts.append(f"发表时间: {published_str}")
+                    email_parts.append(f"📅 发表时间: {published_str}")
                 except:
-                    email_parts.append(f"发表时间: {paper['published']}")
+                    email_parts.append(f"📅 发表时间: {paper['published']}")
+
             
             # 链接
             if paper['link']:
@@ -115,9 +140,20 @@ class EmailSender:
                             server.login(self.username, self.password)
                             server.sendmail(self.username, recipient_email, msg.as_string())
                     
+                    # 记录成功
+                    api_logger.log_email_send(
+                        recipient=recipient_email,
+                        success=True
+                    )
                     logger.info(f"邮件发送成功: {recipient_email}")
                     success_count += 1
                 except Exception as e:
+                    # 记录失败
+                    api_logger.log_email_send(
+                        recipient=recipient_email,
+                        success=False,
+                        error=str(e)
+                    )
                     logger.error(f"发送邮件到 {recipient_email} 失败: {e}")
             
             logger.info(f"成功发送 {success_count}/{len(self.recipient_emails)} 封邮件")
@@ -165,9 +201,20 @@ arXiv机器人
                             server.login(self.username, self.password)
                             server.sendmail(self.username, recipient_email, msg.as_string())
                     
+                    # 记录成功
+                    api_logger.log_email_send(
+                        recipient=recipient_email,
+                        success=True
+                    )
                     logger.info(f"测试邮件发送成功: {recipient_email}")
                     success_count += 1
                 except Exception as e:
+                    # 记录失败
+                    api_logger.log_email_send(
+                        recipient=recipient_email,
+                        success=False,
+                        error=str(e)
+                    )
                     logger.error(f"发送测试邮件到 {recipient_email} 失败: {e}")
             
             logger.info(f"成功发送 {success_count}/{len(self.recipient_emails)} 封测试邮件")
