@@ -1,5 +1,5 @@
 requests==2.32.4
 feedparser==6.0.8
-python-dotenv==1.0.1
 schedule==1.2.0
 openai==2.2.0
+dotenv==0.9.9

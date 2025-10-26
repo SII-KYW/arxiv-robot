@@ -94,9 +94,9 @@ EXCLUDE_KEYWORDS = [
 ]
 
 # 爬取设置
-MAX_PAPERS_PER_CATEGORY = 50  # 每个类别最多爬取论文数
+MAX_PAPERS_PER_CATEGORY = 1  # 每个类别最多爬取论文数
 DAYS_BACK = 1  # 爬取最近几天的论文（改为7天）
 
 # 邮件设置
 EMAIL_SUBJECT_PREFIX = "[arXiv日报]"
-MAX_PAPERS_IN_EMAIL = 10  # 每封邮件最多包含论文数
+MAX_PAPERS_IN_EMAIL = 1  # 每封邮件最多包含论文数

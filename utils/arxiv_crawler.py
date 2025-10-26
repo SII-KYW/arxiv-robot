@@ -9,7 +9,10 @@ from datetime import datetime, timedelta
 from typing import List, Dict
 import time
 
+from utils.logger import APILogger
+
 logger = logging.getLogger(__name__)
+api_logger = APILogger("arXiv")
 
 
 class ArxivCrawler:
@@ -23,20 +26,20 @@ class ArxivCrawler:
     def fetch_papers(self, days_back: int = 1) -> List[Dict]:
         """从arXiv获取论文"""
         all_papers = []
+        failed_categories = []
         
-        for category in self.categories:
+        total_categories = len(self.categories)
+        for idx, category in enumerate(self.categories, 1):
             try:
-                logger.info(f"正在爬取类别 {category}...")
+                # 显示进度
+                logger.info(f"正在处理类别 {category} [{idx}/{total_categories}]")
                 
                 # 构建查询
                 end_date = datetime.now()
                 start_date = end_date - timedelta(days=days_back)
-                start_str = start_date.strftime("%Y%m%d")
-                end_str = end_date.strftime("%Y%m%d")
                 
                 # 构建查询URL - 优化查询方式
                 query_url = f"{self.base_url}?search_query=cat:{category}&max_results={self.max_papers_per_category}&sortBy=submittedDate&sortOrder=descending"
-                logger.debug(f"查询URL: {query_url}")
                 
                 # 发送请求
                 response = requests.get(query_url, timeout=30)
@@ -44,6 +47,15 @@ class ArxivCrawler:
                 
                 # 解析响应
                 feed = feedparser.parse(response.text)
+                
+                # 记录详细日志到文件
+                api_logger.log_api_call(
+                    api_name="arXiv API",
+                    endpoint=query_url,
+                    method="GET",
+                    status="success",
+                    response_data={"论文数": len(feed.entries), "类别": category}
+                )
                 
                 for entry in feed.entries:
                     paper = {
@@ -58,11 +70,24 @@ class ArxivCrawler:
                     logger.debug(paper)
                     all_papers.append(paper)
                 
-                logger.info(f"从类别 {category} 获取到 {len(feed.entries)} 篇论文")
+                logger.info(f"✅ {category}: {len(feed.entries)} 篇论文")
                 time.sleep(1)  # 避免请求过于频繁
                 
             except Exception as e:
-                logger.error(f"爬取类别 {category} 时出错: {e}")
+                # 记录失败
+                failed_categories.append(category)
+                api_logger.log_api_call(
+                    api_name="arXiv API",
+                    endpoint=query_url,
+                    method="GET",
+                    status="failed",
+                    error=str(e)
+                )
+                logger.error(f"❌ {category}: {e}")
+        
+        # 报告失败情况
+        if failed_categories:
+            logger.warning(f"⚠️ {len(failed_categories)} 个类别爬取失败: {', '.join(failed_categories)}")
         
         # 去重
         unique_papers = {}
@@ -70,5 +95,5 @@ class ArxivCrawler:
             if paper['arxiv_id'] and paper['arxiv_id'] not in unique_papers:
                 unique_papers[paper['arxiv_id']] = paper
         
-        logger.info(f"总共获取到 {len(unique_papers)} 篇不重复的论文")
+        logger.info(f"✅ 总共获取到 {len(unique_papers)} 篇不重复的论文")
         return list(unique_papers.values())
