@@ -180,9 +180,9 @@ python main.py         - 启动定时任务
         robot = ArxivRobot()
         
         # 设置定时任务（每天上午9点执行）
-        schedule.every().day.at("09:00").do(robot.run)
+        schedule.every().day.at(config.PROCESS_TIME).do(robot.run)
         
-        logger.info("定时任务已设置，每天上午9点执行")
+        logger.info(f"定时任务已设置，每天{config.PROCESS_TIME}执行")
         logger.info("按 Ctrl+C 停止程序")
         
         # 运行定时任务
