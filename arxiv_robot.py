@@ -42,12 +42,12 @@ class ArxivRobot:
         logger.info(f"  - arXiv类别: {len(config.ARXIV_CATEGORIES)} 个")
         logger.info(f"  - arXiv类别: \n{config.ARXIV_CATEGORIES}")
         logger.info(f"  - 每类爬取上限: {config.MAX_PAPERS_PER_CATEGORY} 篇")
-        logger.info(f"  - 精选论文上限: {config.MAX_PAPERS_IN_EMAIL} 篇")
+        logger.info(f"  - 每组精选论文上限: {config.MAX_PAPERS_PER_GROUP} 篇")
         logger.info(f"  - 爬取天数: {config.DAYS_BACK} 天")
-        logger.info(f"  - 筛选关键词: {len(config.KEYWORDS)} 个")
-        logger.info(f"  - 关键词: \n{config.KEYWORDS}")
-        logger.info(f"  - 排除关键词: {len(config.EXCLUDE_KEYWORDS)} 个")
-        logger.info(f"  - 排除关键词: \n{config.EXCLUDE_KEYWORDS}")
+        logger.info(f"  - 筛选关键词组: {len(config.KEYWORDS)} 个")
+        logger.info(f"  - 关键词组: \n{config.KEYWORDS}")
+        logger.info(f"  - 排除全局关键词: {len(config.GLOBAL_EXCLUDE_KEYWORDS)} 个")
+        logger.info(f"  - 排除全局关键词: \n{config.GLOBAL_EXCLUDE_KEYWORDS}")
 
         logger.info(f"  - 模型类型: {os.getenv('MODEL_TYPE')}")
         logger.info(f"  - 是否启用思考: {os.getenv('ENABLE_THINKING')}")
@@ -64,11 +64,14 @@ class ArxivRobot:
         
         self.filter = PaperFilter(
             keywords=config.KEYWORDS,
-            exclude_keywords=config.EXCLUDE_KEYWORDS
+            global_keywords=config.GLOABL_KEYWORDS,
+            global_exclude_keywords=config.GLOBAL_EXCLUDE_KEYWORDS,
         )
         
         self.ai_summarizer = AISummarizer()
-        self.email_sender = EmailSender()
+        self.email_sender = EmailSender(
+            max_paper_per_group=config.MAX_PAPERS_PER_GROUP
+        )
     
     def _validate_config(self):
         """验证配置"""
@@ -100,22 +103,24 @@ class ArxivRobot:
             
             # 2. 筛选论文
             logger.info("=" * 50)
-            logger.info(f"🔍 步骤2: 筛选论文 (关键词数量: {len(config.KEYWORDS)}, 排除词: {len(config.EXCLUDE_KEYWORDS)})")
+            # logger.info(f"🔍 步骤2: 筛选论文 (关键词数量: {len(config.KEYWORDS)}, 排除词: {len(config.EXCLUDE_KEYWORDS)})")
+            logger.info(f"🔍 步骤2: 筛选论文 (关键词数量: {len(config.KEYWORDS)})")
             try:
-                filtered_papers = self.filter.filter_papers(papers)
+                filtered_papers = self.filter.filter_papers(papers, ai_summarizer=self.ai_summarizer)
                 if not filtered_papers:
                     logger.info("⚠️ 未找到符合条件的论文，任务终止")
                     return True
-                logger.info(f"✅ 筛选完成: {len(filtered_papers)} 篇相关论文")
+                # logger.info(f"✅ 筛选完成: {len(filtered_papers)} 篇相关论文")
+                logger.info(f"✅ 筛选完成: {len([k for k, v in filtered_papers.items() if v])} 类相关论文")
             except Exception as e:
                 logger.error(f"❌ 筛选失败: {e}")
                 return False
             
             # 3. 总结论文并发送邮件
             logger.info("=" * 50)
-            logger.info(f"📧 步骤3: 总结论文并发送邮件 (限制 {config.MAX_PAPERS_IN_EMAIL} 篇)")
+            logger.info(f"📧 步骤3: 总结论文并发送邮件 (每个种类限制 {config.MAX_PAPERS_PER_GROUP} 篇)")
             try:
-                success = self.email_sender.send_email(filtered_papers, self.ai_summarizer)
+                success = self.email_sender.send_email(filtered_papers, ai_summarizer=self.ai_summarizer)
                 if success:
                     logger.info(f"✅ 邮件发送完成")
                     logger.info("=" * 50)

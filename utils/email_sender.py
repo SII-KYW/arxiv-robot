@@ -18,11 +18,13 @@ api_logger = APILogger("Email")
 class EmailSender:
     """邮件发送器"""
     
-    def __init__(self):
+    def __init__(self, max_paper_per_group=10):
         self.host = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
         self.port = int(os.getenv('EMAIL_PORT', 587))
         self.username = os.getenv('EMAIL_USER')
         self.password = os.getenv('EMAIL_PASSWORD')
+        
+        self.max_paper_per_group = max_paper_per_group
         
         # 支持多个收件人（用逗号分隔）
         recipient_str = os.getenv('RECIPIENT_EMAIL', '')
@@ -35,8 +37,7 @@ class EmailSender:
         
         date_str = datetime.now().strftime('%Y-%m-%d')
         # 从config读取最大论文数
-        from configs import config
-        max_papers = min(len(papers), config.MAX_PAPERS_IN_EMAIL)
+        max_papers = min(len(papers), self.max_paper_per_group)
         total_count = max_papers
         
         # 邮件头部
@@ -109,11 +110,19 @@ class EmailSender:
         
         return '\n'.join(email_parts)
     
-    def send_email(self, papers: List[Dict], ai_summarizer) -> bool:
+    def send_email(self, papers: List[Dict], ai_summarizer=None) -> bool:
         """发送邮件"""
         try:
             # 创建邮件内容
-            email_body = self.format_email_content(papers, ai_summarizer)
+            if isinstance(papers, dict):
+                email_body = ""
+                for group_name, group_papers in papers.items():
+                    email_body_ = self.format_email_content(group_papers, ai_summarizer)
+                    if group_papers:
+                        email_body += f"\n\n=== Group: {group_name} ===\n\n" + email_body_.strip("\n")
+            else:
+                email_body = self.format_email_content(papers, ai_summarizer)
+                
             date_str = datetime.now().strftime('%Y-%m-%d')
             subject = f"{date_str} 每日精选 #{len(papers)}"
             
