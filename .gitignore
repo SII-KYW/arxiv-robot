@@ -43,3 +43,6 @@ output/
 *.temp
 tests/
 
+# 3rdparty
+3rdparty/
+

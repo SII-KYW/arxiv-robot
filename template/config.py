@@ -41,16 +41,21 @@ KEYWORDS = {
     ],
     "video understanding": [
         "video",
+        "video understanding",
+        "video large language model",
+        "video llm",
+        "vllm",
+        "vlm"
     ],
 }
 
 
 # 爬取设置
 MAX_PAPERS_PER_CATEGORY = 10000  # 每个类别最多爬取论文数
-DAYS_BACK = 1  # 爬取最近几天的论文（改为7天）
+DAYS_BACK = 7  # 爬取最近几天的论文（改为7天）
 
 # 邮件设置
 EMAIL_SUBJECT_PREFIX = "[arXiv日报]"
-MAX_PAPERS_IN_EMAIL = 20  # 每封邮件最多包含论文数
+MAX_PAPERS_PER_GROUP = 3  # 每封邮件最多包含论文数
 
-PROCESS_TIME = "01:00"
+PROCESS_TIME = "00:01"

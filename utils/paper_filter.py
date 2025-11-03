@@ -59,7 +59,7 @@ class PaperFilter:
                         else:
                             score += 1
                 
-                # 只保留得分高于阈值的论文
+                # 只保留得分高于阈值的论文,至少在abstract里提到过
                 if score >= min_score:
                     paper['relevance_score'] = score
                     paper['matched_keywords'] = matched_keywords
