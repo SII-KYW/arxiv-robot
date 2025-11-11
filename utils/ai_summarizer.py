@@ -22,7 +22,7 @@ class AISummarizer:
         self.api_key = api_key or os.getenv('OPENAI_API_KEY')
         self.api_url = os.getenv("OPENAI_API_URL", None)
         self.model_type = os.getenv("MODEL_TYPE", "gpt-3.5-turbo")
-        self.use_ai_summary = os.getenv("USE_AI_SUMMARY", True)
+        self.use_ai_summary = os.getenv("USE_AI_SUMMARY", "TRUE") == "TRUE"
         
         if not self.api_key or self.api_url is None:
             self.use_ai_summary = False
@@ -32,7 +32,7 @@ class AISummarizer:
         else:
             logger.info("使用基础总结功能（未启用AI或未配置API密钥）")
         
-        self.enable_thinking = os.getenv("ENABLE_THINKING", False)
+        self.enable_thinking = os.getenv("ENABLE_THINKING", "FALSE") == "TRUE"
     
     def summarize_paper(self, title: str, abstract: str) -> Dict[str, str]:
         """总结论文"""
@@ -44,28 +44,39 @@ class AISummarizer:
                 "Accept": "application/json",
                 "Content-Type": "application/json"
             }
-                        
-            prompt = f"""
-请分析以下学术论文，提取关键信息：
+            
+            system_prompt = f"""
+你是一名专业的学术分析助手，擅长从学术论文中提取关键问题、创新点和结论。你需要用简洁、准确、科学的语言，根据提供的论文内容进行分析提取信息。请基于以下要求完成任务：
+1. 用中文回答，避免使用不必要的冗长语言；
+2. 强调论文技术要点和创新性；
+3. 以清晰的结构归纳并输出所需信息。
+"""
+# 4. 每部分信息不超过100字；
 
+            prompt = f"""
+请分析以下学术论文，提取关键信息并回答：
 标题: {title}
 摘要: {abstract}
 
-请按以下格式输出：
+请按照以下格式输出：
 核心问题：[论文要解决的核心问题]
 关键思路：[论文的主要方法和创新点]
 主要结论：[论文的主要发现和结果]
 
-要求：
-1. 用中文回答
-2. 每个部分控制在100字以内
-3. 突出技术要点和创新性
+（请严格遵循格式要求并用简洁语言表达。）
 """
+            
+            if not self.enable_thinking:
+                if "qwen3" in self.model_type.lower():
+                    prompt += "/no_think"
             
             data = {
                 "model": self.model_type,
                 "messages": [
-                    {"role": "user", "content": prompt}
+                    {
+                        "role": "system", "content": system_prompt,
+                        "role": "user", "content": prompt
+                    }
                 ],
                 "stream": False,
                 "enable_thinking": self.enable_thinking,

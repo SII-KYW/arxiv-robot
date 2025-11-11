@@ -22,11 +22,12 @@ wheels/
 
 # 环境变量
 .env
-configs/config.py
+configs/
 
 # 日志文件
 output/*.log
 output/
+*.out
 
 # IDE
 .vscode/
@@ -41,4 +42,7 @@ output/
 *.tmp
 *.temp
 tests/
+
+# 3rdparty
+3rdparty/
 

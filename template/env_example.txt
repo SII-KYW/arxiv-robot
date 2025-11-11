@@ -12,12 +12,11 @@ RECIPIENT_EMAIL=recipient1@gmail.com,recipient2@163.com,recipient3@qq.com
 
 # ======= AI API配置 - 用于高质量论文总结（可选）选择其中一个API，设置对应的API密钥 ======= #
 OPENAI_API_KEY=your_claude_api_key
-MODEL_TYPE=gpt-3.5-turbo
-
-# ======= AI总结配置 ======= #
-AI_API_TYPE=openai  # 可选: openai, claude[TODO], gemini[TODO]
 OPENAI_API_URL="https://api.openai.com/v1/chat/completions"
-USE_AI_SUMMARY=true  # 是否使用AI总结
+MODEL_TYPE=gpt-3.5-turbo
+ENABLE_THINKING=FALSE
+USE_AI_SUMMARY=TRUE  # 是否使用AI总结
+USE_AI_SCORE=FALSE
 
 # ======= 日志配置 ======= #
 LOG_LEVEL=INFO
