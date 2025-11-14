@@ -40,10 +40,6 @@ class AISummarizer:
             return self._basic_summary(abstract)
         
         try:
-            # headers = {
-            #     "Accept": "application/json",
-            #     "Content-Type": "application/json"
-            # }
             headers = {
                 "Accept": "application/json",
                 "Authorization": f"Bearer {self.api_key}",
@@ -88,12 +84,6 @@ class AISummarizer:
             }
             
             # 发送请求
-            # response = requests.post(
-            #     self.api_url,
-            #     headers=headers,
-            #     data=json.dumps(data),
-            #     verify=False
-            # )
             response = requests.post(self.api_url, headers=headers, json=data, timeout=120)
             response.raise_for_status()
             
