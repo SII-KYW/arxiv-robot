@@ -25,7 +25,9 @@ RECIPIENT_EMAIL=recipient@gmail.com
 
 # 可选：AI总结功能
 OPENAI_API_KEY=your_openai_api_key
-USE_AI_SUMMARY=true
+OPENAI_API_URL=your_openai_url
+MODEL_TYPE=model_name
+USE_AI_SUMMARY=TRUE
 ```
 
 ### 3. 运行机器人
@@ -65,7 +67,7 @@ python arxiv_robot.py
 
 1. 注册OpenAI账户并获取API密钥
 2. 在 `.env` 文件中设置 `OPENAI_API_KEY`
-3. 设置 `USE_AI_SUMMARY=true`
+3. 设置 `USE_AI_SUMMARY=TRUE`
 
 ## 📊 邮件内容示例
 
@@ -110,7 +112,7 @@ KEYWORDS = [
 ]
 
 # 排除关键词
-EXCLUDE_KEYWORDS = ["survey", "review", "tutorial"]
+GLOBAL_EXCLUDE_KEYWORDS = ["survey", "review", "tutorial"]
 ```
 
 详细配置说明请查看：[配置指南](docs/CONFIG_GUIDE.md)

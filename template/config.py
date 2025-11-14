@@ -51,11 +51,11 @@ KEYWORDS = {
 
 
 # 爬取设置
-MAX_PAPERS_PER_CATEGORY = 10000  # 每个类别最多爬取论文数
+MAX_PAPERS_PER_CATEGORY = 5000  # 每个类别最多爬取论文数
 DAYS_BACK = 7  # 爬取最近几天的论文（改为7天）
 
 # 邮件设置
 EMAIL_SUBJECT_PREFIX = "[arXiv日报]"
-MAX_PAPERS_PER_GROUP = 3  # 每封邮件最多包含论文数
+MAX_PAPERS_PER_GROUP = 5  # 每封邮件最多包含论文数
 
 PROCESS_TIME = "00:01"
