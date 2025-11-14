@@ -22,7 +22,7 @@ load_dotenv()
 # 配置日志
 from utils.logger import setup_logger
 
-log_path = os.path.join("output", os.getenv("LOG_FILE", "arxiv_robot.log"))
+log_path = os.path.join("logs", os.getenv("LOG_FILE", "arxiv_robot.log"))
 os.makedirs(os.path.dirname(log_path), exist_ok=True)
 
 # 使用新的日志系统

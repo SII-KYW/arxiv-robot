@@ -19,12 +19,12 @@ class AISummarizer:
     """AI总结器"""
     
     def __init__(self, api_key: str = None):
-        self.api_key = api_key or os.getenv('OPENAI_API_KEY')
+        self.api_key = api_key or os.getenv('OPENAI_API_KEY', None)
         self.api_url = os.getenv("OPENAI_API_URL", None)
         self.model_type = os.getenv("MODEL_TYPE", "gpt-3.5-turbo")
         self.use_ai_summary = os.getenv("USE_AI_SUMMARY", "TRUE") == "TRUE"
         
-        if not self.api_key or self.api_url is None:
+        if self.api_key is None or self.api_url is None:
             self.use_ai_summary = False
             
         if self.use_ai_summary:
@@ -42,7 +42,8 @@ class AISummarizer:
         try:
             headers = {
                 "Accept": "application/json",
-                "Content-Type": "application/json"
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json",
             }
             
             system_prompt = f"""
@@ -83,12 +84,8 @@ class AISummarizer:
             }
             
             # 发送请求
-            response = requests.post(
-                self.api_url,
-                headers=headers,
-                data=json.dumps(data),
-                verify=False
-            )
+            response = requests.post(self.api_url, headers=headers, json=data, timeout=120)
+            response.raise_for_status()
             
             # 检查响应
             if response.status_code == 200:
@@ -120,6 +117,7 @@ class AISummarizer:
                 return result
                 
         except Exception as e:
+            logger.debug(e)
             # 记录异常到文件
             api_logger.log_openai_request(
                 model=self.model_type,

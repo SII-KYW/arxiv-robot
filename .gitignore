@@ -28,6 +28,7 @@ configs/
 output/*.log
 output/
 *.out
+logs/
 
 # IDE
 .vscode/

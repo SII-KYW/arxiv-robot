@@ -14,6 +14,7 @@ RECIPIENT_EMAIL=recipient1@gmail.com,recipient2@163.com,recipient3@qq.com
 OPENAI_API_KEY=your_claude_api_key
 OPENAI_API_URL="https://api.openai.com/v1/chat/completions"
 MODEL_TYPE=gpt-3.5-turbo
+
 ENABLE_THINKING=FALSE
 USE_AI_SUMMARY=TRUE  # 是否使用AI总结
 USE_AI_SCORE=FALSE
