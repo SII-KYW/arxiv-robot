@@ -22,7 +22,7 @@ class AISummarizer:
         self.api_key = api_key or os.getenv('OPENAI_API_KEY', None)
         self.api_url = os.getenv("OPENAI_API_URL", None)
         self.model_type = os.getenv("MODEL_TYPE", "gpt-3.5-turbo")
-        self.use_ai_summary = os.getenv("USE_AI_SUMMARY", "TRUE") == "TRUE"
+        self.use_ai_summary = os.getenv("USE_AI_SUMMARY", "TRUE").lower() == "true"
         
         if self.api_key is None or self.api_url is None:
             self.use_ai_summary = False
@@ -32,7 +32,7 @@ class AISummarizer:
         else:
             logger.info("使用基础总结功能（未启用AI或未配置API密钥）")
         
-        self.enable_thinking = os.getenv("ENABLE_THINKING", "FALSE") == "TRUE"
+        self.enable_thinking = os.getenv("ENABLE_THINKING", "FALSE").lower() == "true"
     
     def summarize_paper(self, title: str, abstract: str) -> Dict[str, str]:
         """总结论文"""
